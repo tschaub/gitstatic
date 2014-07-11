@@ -1,0 +1,31 @@
+{
+  "name": "gitstatic",
+  "version": "0.0.0",
+  "description": "Make static sites with GitHub webhooks",
+  "author": {
+    "name": "Tim Schaub",
+    "url": "http://tschaub.net/"
+  },
+  "main": "receiver.js",
+  "scripts": {
+    "test": "node receiver.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tschaub/gitstatic.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tschaub/gitstatic/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://tschaub.mit-license.org/"
+    }
+  ],
+  "devDependencies": {
+    "mock-res": "~0.1.0",
+    "mock-req": "~0.1.0",
+    "tape": "~2.13.3"
+  }
+}
