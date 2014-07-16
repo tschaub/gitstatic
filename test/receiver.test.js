@@ -233,7 +233,8 @@ lab.experiment('make()', function() {
       scratch = dir;
       receiver.setEnv({
         RECEIVER_REPO_OWNER: 'fixtures',
-        RECEIVER_STATIC_ROOT: scratch
+        RECEIVER_CLONE_ROOT: path.join(scratch, 'repos'),
+        RECEIVER_STATIC_ROOT: path.join(scratch, 'sites')
       });
       tgz.extract(fixtures, scratch, done);
     });
@@ -246,18 +247,64 @@ lab.experiment('make()', function() {
 
 
   lab.test('smoke', function(done) {
-
+    var name = 'smoke';
     var push = {
       after: 'origin/master',
       ref: 'refs/heads/master',
       repository: {
-        url: path.join(scratch, 'fixtures', 'smoke'),
-        name: 'smoke',
+        url: path.join(scratch, 'fixtures', name),
+        name: name,
         master_branch: 'master'
       }
     };
 
-    receiver.make(push, done);
+    receiver.make(push, function(err) {
+      if (err) {
+        done(err);
+        return;
+      }
+      var output = path.join(scratch, 'sites', name, 'ok');
+      fs.exists(output, function(exists) {
+        lab.assert.strictEqual(exists, true, output + ' exists');
+        done();
+      });
+    });
+
+  });
+
+  lab.test('two builds in series', function(done) {
+    var name = 'smoke';
+    var push = {
+      after: 'origin/master',
+      ref: 'refs/heads/master',
+      repository: {
+        url: path.join(scratch, 'fixtures', name),
+        name: name,
+        master_branch: 'master'
+      }
+    };
+
+    receiver.make(push, function(err) {
+      if (err) {
+        done(err);
+        return;
+      }
+      var output = path.join(scratch, 'sites', name, 'ok');
+      fs.exists(output, function(exists) {
+        lab.assert.strictEqual(exists, true, output + ' exists');
+        receiver.make(push, function(err) {
+          if (err) {
+            done(err);
+            return;
+          }
+          var output = path.join(scratch, 'sites', name, 'ok');
+          fs.exists(output, function(exists) {
+            lab.assert.strictEqual(exists, true, output + ' exists');
+            done();
+          });
+        });
+      });
+    });
 
   });
 

@@ -147,7 +147,8 @@ exports.make = function(push, opt_callback) {
     push.repository.name,
     push.repository.url,
     push.after,
-    path.join(get('RECEIVER_STATIC_ROOT'))
+    path.resolve(get('RECEIVER_CLONE_ROOT')),
+    path.resolve(get('RECEIVER_STATIC_ROOT'))
   ];
 
   var builder = path.join(__dirname, 'builder.sh');
@@ -202,6 +203,7 @@ if (require.main === module) {
 
   // set up environment with some defaults
   setEnv(Object.create(process.env, {
+    RECEIVER_CLONE_ROOT: {value: 'repos'},
     RECEIVER_LOG_LEVEL: {value: 'info'},
     RECEIVER_PORT: {value: '8000'}
   }));
