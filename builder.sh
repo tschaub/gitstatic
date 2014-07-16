@@ -47,12 +47,12 @@ SITE_DIR=$STATIC_ROOT/$NAME/
 
 mkdir -p repos
 if [ ! -d repos/$NAME ]; then
-  git clone $REPO_URL $CLONE 1>/dev/null
+  git clone --quiet $REPO_URL $CLONE
 fi
 
 pushd $CLONE 1>/dev/null
-git fetch origin 1>/dev/null
-git reset --hard $COMMIT_SHA 1>/dev/null
+git fetch --quiet origin
+git reset --quiet --hard $COMMIT_SHA
 make
 popd 1>/dev/null
 

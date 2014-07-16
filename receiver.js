@@ -137,6 +137,9 @@ exports.make = function(push, opt_callback) {
   if (push.ref !== 'refs/heads/' + push.repository.master_branch) {
     log('debug', 'skipping push for %s of %s (default branch is %s)',
         push.ref, push.repository.url, push.repository.master_branch);
+    if (opt_callback) {
+      opt_callback(null);
+    }
     return;
   }
 
