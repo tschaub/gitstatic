@@ -123,6 +123,24 @@ lab.experiment('assertValid()', function() {
     done();
   });
 
+  lab.test('mismatched repository name', function(done) {
+    var push = {
+      after: 'asdf',
+      ref: 'refs/heads/master',
+      repository: {
+        name: 'not-repo',
+        url: 'https://github.com/test/repo',
+        master_branch: 'master'
+      }
+    };
+
+    lab.assert.throws(function() {
+      receiver.assertValid(push);
+    }, 'bad repo name');
+
+    done();
+  });
+
   lab.test('missing repository master_branch', function(done) {
     var push = {
       after: 'asdf',
@@ -153,7 +171,7 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repository url');
+    }, 'bad repository url', 'wrong protocol');
 
     lab.assert.throws(function() {
       var push = {
@@ -166,20 +184,20 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repository url');
+    }, 'bad repository url', 'wrong hostname');
 
     lab.assert.throws(function() {
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
         repository: {
-          url: 'https://example.com/foo/repo',
+          url: 'https://github.com/foo/repo',
           name: 'repo',
           master_branch: 'master'
         }
       };
       receiver.assertValid(push);
-    }, 'bad repository url');
+    }, 'bad repository url', 'wrong owner');
 
     done();
   });
