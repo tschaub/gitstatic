@@ -5,10 +5,49 @@ var spawn = require('child_process').spawn;
 var url = require('url');
 var util = require('util');
 
-var LOG_LEVEL = process.env.RECEIVER_LOG_LEVEL || 'info';
-var PORT = Number(process.env.RECEIVER_PORT) || 8080;
-var STATIC_ROOT = process.env.RECEIVER_STATIC_ROOT;
-var REPO_OWNER = process.env.RECEIVER_REPO_OWNER;
+
+/**
+ * The current environment.
+ * @type {Object}
+ */
+var env;
+
+
+/**
+ * Set the environment.
+ * @param {Object} newEnv New environment.
+ */
+var setEnv = exports.setEnv = function(newEnv) {
+  env = newEnv;
+};
+
+
+/**
+ * Get the current environment.
+ * @return {Object} The environment.
+ */
+var getEnv = exports.getEnv = function() {
+  return env;
+};
+
+
+/**
+ * Get an environment variable.
+ * @param {string} key Variable name.
+ * @param {function(string):*} opt_cast Function to cast environment variable
+ *     to another value.
+ * @return {*} Value.
+ */
+var get = exports.get = function(key, opt_cast) {
+  if (!env) {
+    throw new Error('Environment not set');
+  }
+  var value = env[key];
+  if (opt_cast) {
+    value = opt_cast(value);
+  }
+  return value;
+};
 
 
 /**
@@ -17,14 +56,19 @@ var REPO_OWNER = process.env.RECEIVER_REPO_OWNER;
  * @return {boolean} The payload is valid.
  */
 exports.assertValid = function(push) {
+  assert.ok(push.repository, 'no repository');
+
   // confirm the repo url is valid
-  var parsed = url.parse(push.repository.url);
-  var badUrl = 'bad repository url: ' + parsed.href;
-  assert.equal(parsed.protocol, 'https:', badUrl);
-  assert.equal(parsed.hostname, 'github.com', badUrl);
+  var parsed;
+  assert.doesNotThrow(function() {
+    parsed = url.parse(push.repository.url);
+  });
+  var message = 'bad repository url: ' + parsed.href;
+  assert.equal(parsed.protocol, 'https:', message);
+  assert.equal(parsed.hostname, 'github.com', message);
   var parts = parsed.pathname.split('/');
-  assert.equal(parts.length, 3, badUrl);
-  assert.equal(parts[1], REPO_OWNER, badUrl);
+  assert.equal(parts.length, 3, message);
+  assert.equal(parts[1], get('RECEIVER_REPO_OWNER'), message);
 
   // confirm other details are present
   assert.equal(push.repository.name, parts[2], 'bad repo name');
@@ -34,6 +78,12 @@ exports.assertValid = function(push) {
   return true;
 };
 
+
+/**
+ * HTTP request listener.
+ * @param {http.IncomingMessage} req Request.
+ * @param {http.ClientResponse} res Response.
+ */
 exports.handler = function(req, res) {
   var headers = {'content-type': 'application/json'};
   var event = req.headers['x-github-event'];
@@ -52,7 +102,7 @@ exports.handler = function(req, res) {
     log('debug', 'bad event type: %s', event);
     res.writeHead(403, headers);
     res.end(JSON.stringify({ok: false, msg: 'bad event type'}));
-    return;    
+    return;
   }
 
   log('debug', 'handling push event');
@@ -69,7 +119,7 @@ exports.handler = function(req, res) {
       log('error', 'bad payload: %s', err.message);
       res.writeHead(400, headers);
       res.end(JSON.stringify({ok: false, msg: 'bad payload'}));
-      return;    
+      return;
     }
     res.writeHead(200, headers);
     res.end(JSON.stringify({ok: true}));
@@ -77,29 +127,51 @@ exports.handler = function(req, res) {
   });
 };
 
-exports.make = function(push) {
+
+/**
+ * Make the site based on a push event.
+ * @param {Object} push Push event.
+ * @param {function(Error)} opt_callback Called with any error.
+ */
+exports.make = function(push, opt_callback) {
   if (push.ref !== 'refs/heads/' + push.repository.master_branch) {
     log('debug', 'skipping push for %s of %s (default branch is %s)',
         push.ref, push.repository.url, push.repository.master_branch);
     return;
   }
-  log('verbose', 'building: %s', push.ref);
-  var dir = path.join(STATIC_ROOT, push.repository.name);
-  var args = [dir, push.repository.url, push.after];
+
+  var args = [
+    push.repository.name,
+    push.repository.url,
+    push.after,
+    path.join(get('RECEIVER_STATIC_ROOT'))
+  ];
+
   var builder = path.join(__dirname, 'builder.sh');
+
+  log('verbose', 'building: %s', push.ref);
   var child = spawn(builder, args);
+
   child.stdout.on('data', function(chunk) {
     log('info', String(chunk).trim());
   });
+
   child.stderr.on('data', function(chunk) {
     log('error', String(chunk).trim());
   });
+
   child.on('exit', function(code) {
+    var err = null;
     if (code) {
       log('error', 'build failed: %s %s', builder, args.join(' '));
+      err = new Error('Build failed with code: ' + code);
+    }
+    if (opt_callback) {
+      opt_callback(err);
     }
   });
 };
+
 
 var LOG_LEVELS = {
   debug: 3,
@@ -113,24 +185,38 @@ function log(level, msg) {
   if (level === 'error') {
     process.stderr.write(msg + '\n');
   } else {
-    if (LOG_LEVELS[level] <= LOG_LEVELS[LOG_LEVEL]) {
+    if (LOG_LEVELS[level] <= LOG_LEVELS[get('RECEIVER_LOG_LEVEL')]) {
       process.stdout.write(msg + '\n');
     }
   }
 }
 
+
+/**
+ * Start server when run directly.
+ */
 if (require.main === module) {
-  if (!REPO_OWNER) {
+
+  // set up environment with some defaults
+  setEnv(Object.create(process.env, {
+    RECEIVER_LOG_LEVEL: {value: 'info'},
+    RECEIVER_PORT: {value: '8000'}
+  }));
+
+  if (!get('RECEIVER_REPO_OWNER')) {
     log('error', 'missing RECEIVER_REPO_OWNER environment variable');
     process.exit(1);
   }
-  if (!STATIC_ROOT) {
+
+  if (!get('RECEIVER_STATIC_ROOT')) {
     log('error', 'missing RECEIVER_STATIC_ROOT environment variable');
     process.exit(1);
   }
+
   var server = new http.Server(exports.handler);
-  server.listen(PORT, function() {
+  server.listen(get('RECEIVER_PORT', Number), function() {
     var info = server.address();
     log('info', 'listening on http://%s:%d/', info.address, info.port);
-  });  
+  });
+
 }
