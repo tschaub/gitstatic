@@ -8,7 +8,7 @@
   },
   "main": "receiver.js",
   "scripts": {
-    "test": "node receiver.test.js"
+    "test": "faucet receiver.test.js"
   },
   "repository": {
     "type": "git",
@@ -26,6 +26,7 @@
   "devDependencies": {
     "mock-res": "~0.1.0",
     "mock-req": "~0.1.0",
-    "tape": "~2.13.3"
+    "tape": "~2.13.3",
+    "faucet": "0.0.1"
   }
 }
