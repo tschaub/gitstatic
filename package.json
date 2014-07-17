@@ -1,6 +1,6 @@
 {
   "name": "gitstatic",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Make static sites with GitHub webhooks",
   "author": {
     "name": "Tim Schaub",
