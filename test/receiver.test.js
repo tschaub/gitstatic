@@ -331,4 +331,60 @@ lab.experiment('make()', function() {
 
   });
 
+  lab.test('four push events at once', function(done) {
+    var name = 'smoke';
+    var push = {
+      after: 'origin/master',
+      ref: 'refs/heads/master',
+      repository: {
+        url: path.join(scratch, 'fixtures', name),
+        name: name,
+        master_branch: 'master'
+      }
+    };
+
+    var emitter1 = receiver.make(push);
+    lab.assert.instanceOf(emitter1, events.EventEmitter);
+    emitter1.on('error', done);
+    emitter1.on('aborted', function() {
+      done(new Erorr('Unexpected abort for job'));
+    });
+
+    var emitter2 = receiver.make(push);
+    lab.assert.instanceOf(emitter2, events.EventEmitter);
+    emitter2.on('error', done);
+
+    var emitter3 = receiver.make(push);
+    lab.assert.instanceOf(emitter3, events.EventEmitter);
+    emitter3.on('error', done);
+
+    var emitter4 = receiver.make(push);
+    lab.assert.instanceOf(emitter4, events.EventEmitter);
+    emitter4.on('error', done);
+    emitter4.on('aborted', function() {
+      done(new Erorr('Unexpected abort for job'));
+    });
+
+    // the first and last jobs should run, others should be ignored
+    var aborted = 0;
+    emitter2.on('aborted', function() {
+      ++aborted;
+    });
+    emitter3.on('aborted', function() {
+      ++aborted;
+    });
+
+    var completed = 0;
+    emitter1.on('end', function() {
+      ++completed;
+    });
+    emitter4.on('end', function() {
+      ++completed;
+      lab.assert.strictEqual(aborted, 2, 'two jobs aborted');
+      lab.assert.strictEqual(completed, 2, 'two jobs completed');
+      done();
+    });
+
+  });
+
 });

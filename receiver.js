@@ -18,7 +18,7 @@ var env;
  * Set the environment.
  * @param {Object} newEnv New environment.
  */
-var setEnv = exports.setEnv = function(newEnv) {
+exports.setEnv = function(newEnv) {
   env = newEnv;
 };
 
@@ -27,7 +27,7 @@ var setEnv = exports.setEnv = function(newEnv) {
  * Get the current environment.
  * @return {Object} The environment.
  */
-var getEnv = exports.getEnv = function() {
+exports.getEnv = function() {
   return env;
 };
 
@@ -39,7 +39,7 @@ var getEnv = exports.getEnv = function() {
  *     to another value.
  * @return {*} Value.
  */
-var get = exports.get = function(key, opt_cast) {
+exports.get = function(key, opt_cast) {
   if (!env) {
     throw new Error('Environment not set');
   }
@@ -69,7 +69,7 @@ exports.assertValid = function(push) {
   assert.equal(parsed.hostname, 'github.com', message);
   var parts = parsed.pathname.split('/');
   assert.equal(parts.length, 3, message);
-  assert.equal(parts[1], get('RECEIVER_REPO_OWNER'), message);
+  assert.equal(parts[1], exports.get('RECEIVER_REPO_OWNER'), message);
 
   // confirm other details are present
   assert.equal(push.repository.name, parts[2], 'bad repo name');
@@ -130,26 +130,83 @@ exports.handler = function(req, res) {
 
 
 /**
+ * Running jobs.  This provides a lookup of of running jobs by repository name.
+ * @type {Object.<string, Job>}
+ */
+var runningJobs = {};
+
+
+/**
+ * Pending jobs.  Up to one pending job is allwed per repository name.  When
+ * a new push event is received and there is a job running for the same
+ * repository the new job will be set as pending.
+ * @type {Object.<string, Job>}
+ */
+var pendingJobs = {};
+
+
+
+/**
+ * Job constructor.  Maintains job info.
+ * @param {Object} push Push event data.
+ * @param {events.EventEmitter} emitter The job event emitter.
+ * @constructor
+ */
+exports.Job = function(push, emitter) {
+  this.push = push;
+  this.emitter = emitter;
+};
+
+
+/**
  * Make the site based on a push event.
  * @param {Object} push Push event.
  * @return {events.EventEmitter} An event emitter (or `null` if no job was
- *     started).  This will fire an `error` event if the job fails or an `end`
- *     event if it succeeds.
+ *     started).  This will fire an `error` event if the job fails, an `end`
+ *     event if it succeeds, or an `abort` event if it is not run due to another
+ *     job being scheduled for the same repository.
  */
 exports.make = function(push) {
-  var emitter = new events.EventEmitter();
   if (push.ref !== 'refs/heads/' + push.repository.master_branch) {
     log('debug', 'skipping push for %s of %s (default branch is %s)',
         push.ref, push.repository.url, push.repository.master_branch);
     return null;
   }
+  var emitter = new events.EventEmitter();
+  var job = new exports.Job(push, emitter);
+  process.nextTick(run.bind(null, job));
+  return emitter;
+};
+
+
+/**
+ * Run a job.  If there is already a job running for the same repository, the
+ * job will be queued.
+ * @param {Job} job The job to run.
+ */
+var run = function(job) {
+  var push = job.push;
+  var emitter = job.emitter;
+  var name = push.repository.name;
+
+  if (runningJobs[name]) {
+    var pending = pendingJobs[name];
+    if (pending) {
+      log('verbose', 'removing job %s@%s from queue', name, push.ref);
+      pending.emitter.emit('aborted');
+    }
+    log('verbose', 'queued job %s@%s', name, push.ref);
+    pendingJobs[name] = job;
+    return;
+  }
+  runningJobs[name] = job;
 
   var args = [
     push.repository.name,
     push.repository.url,
     push.after,
-    path.resolve(get('RECEIVER_CLONE_ROOT')),
-    path.resolve(get('RECEIVER_STATIC_ROOT'))
+    path.resolve(exports.get('RECEIVER_CLONE_ROOT')),
+    path.resolve(exports.get('RECEIVER_STATIC_ROOT'))
   ];
 
   var builder = path.join(__dirname, 'builder.sh');
@@ -166,6 +223,7 @@ exports.make = function(push) {
   });
 
   child.on('exit', function(code) {
+    delete runningJobs[name];
     if (code) {
       log('error', 'build failed: %s %s', builder, args.join(' '));
       var err = new Error('Build failed with code: ' + code);
@@ -173,8 +231,14 @@ exports.make = function(push) {
     } else {
       emitter.emit('end');
     }
+
+    // run any pending job
+    var pending = pendingJobs[name];
+    if (pending) {
+      delete pendingJobs[name];
+      process.nextTick(run.bind(null, pending));
+    }
   });
-  return emitter;
 };
 
 
@@ -190,7 +254,7 @@ function log(level, msg) {
   if (level === 'error') {
     process.stderr.write(msg + '\n');
   } else {
-    if (LOG_LEVELS[level] <= LOG_LEVELS[get('RECEIVER_LOG_LEVEL')]) {
+    if (LOG_LEVELS[level] <= LOG_LEVELS[exports.get('RECEIVER_LOG_LEVEL')]) {
       process.stdout.write(msg + '\n');
     }
   }
@@ -203,24 +267,24 @@ function log(level, msg) {
 if (require.main === module) {
 
   // set up environment with some defaults
-  setEnv(Object.create(process.env, {
+  exports.setEnv(Object.create(process.env, {
     RECEIVER_CLONE_ROOT: {value: 'repos'},
     RECEIVER_LOG_LEVEL: {value: 'info'},
     RECEIVER_PORT: {value: '8000'}
   }));
 
-  if (!get('RECEIVER_REPO_OWNER')) {
+  if (!exports.get('RECEIVER_REPO_OWNER')) {
     log('error', 'missing RECEIVER_REPO_OWNER environment variable');
     process.exit(1);
   }
 
-  if (!get('RECEIVER_STATIC_ROOT')) {
+  if (!exports.get('RECEIVER_STATIC_ROOT')) {
     log('error', 'missing RECEIVER_STATIC_ROOT environment variable');
     process.exit(1);
   }
 
   var server = new http.Server(exports.handler);
-  server.listen(get('RECEIVER_PORT', Number), function() {
+  server.listen(exports.get('RECEIVER_PORT', Number), function() {
     var info = server.address();
     log('info', 'listening on http://%s:%d/', info.address, info.port);
   });
