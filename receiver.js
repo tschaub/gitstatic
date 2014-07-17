@@ -262,6 +262,19 @@ function log(level, msg) {
   }
 }
 
+function defaults(target, source) {
+  var args = Array.prototype.slice.call(arguments);
+  target = args.shift();
+  while (source = args.shift()) {
+    for (var key in source) {
+      if (!(key in target)) {
+        target[key] = source[key];
+      }
+    }
+  }
+  return target;
+}
+
 
 /**
  * Start server when run directly.
@@ -269,19 +282,15 @@ function log(level, msg) {
 if (require.main === module) {
 
   // set up environment with some defaults
-  exports.setEnv(Object.create(process.env, {
-    RECEIVER_CLONE_ROOT: {value: 'repos'},
-    RECEIVER_LOG_LEVEL: {value: 'info'},
-    RECEIVER_PORT: {value: '8000'}
+  exports.setEnv(defaults({}, process.env, {
+    RECEIVER_CLONE_ROOT: 'repos',
+    RECEIVER_STATIC_ROOT: 'sites',
+    RECEIVER_LOG_LEVEL: 'info',
+    RECEIVER_PORT: '8000'
   }));
 
   if (!exports.get('RECEIVER_REPO_OWNER')) {
     log('error', 'missing RECEIVER_REPO_OWNER environment variable');
-    process.exit(1);
-  }
-
-  if (!exports.get('RECEIVER_STATIC_ROOT')) {
-    log('error', 'missing RECEIVER_STATIC_ROOT environment variable');
     process.exit(1);
   }
 
