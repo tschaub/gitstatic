@@ -192,7 +192,7 @@ var run = function(job) {
   if (runningJobs[name]) {
     var pending = pendingJobs[name];
     if (pending) {
-      log('verbose', 'removing job %s@%s from queue', name, push.ref);
+      log('verbose', 'removing job %s@%s from queue', name, push.after);
       pending.emitter.emit('aborted');
     }
     log('verbose', 'queued job %s@%s', name, push.ref);
@@ -211,7 +211,7 @@ var run = function(job) {
 
   var builder = path.join(__dirname, 'builder.sh');
 
-  log('verbose', 'building: %s', push.ref);
+  log('verbose', 'building: %s@%s', name, push.after);
   var child = spawn(builder, args);
 
   child.stdout.on('data', function(chunk) {
@@ -229,6 +229,7 @@ var run = function(job) {
       var err = new Error('Build failed with code: ' + code);
       emitter.emit('error', err);
     } else {
+      log('verbose', 'build completed: %s@%s', name, push.after);
       emitter.emit('end');
     }
 
