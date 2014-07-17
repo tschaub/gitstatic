@@ -293,6 +293,23 @@ lab.experiment('make()', function() {
 
   });
 
+  lab.test('skipped job (push not on default branch)', function(done) {
+    var name = 'smoke';
+    var push = {
+      after: 'commit-sha',
+      ref: 'refs/heads/feature',
+      repository: {
+        url: path.join(scratch, 'fixtures', name),
+        name: name,
+        master_branch: 'master'
+      }
+    };
+
+    var emitter = receiver.make(push);
+    lab.assert.isNull(emitter);
+    done();
+  });
+
   lab.test('two builds in series', function(done) {
     var name = 'smoke';
     var push = {
