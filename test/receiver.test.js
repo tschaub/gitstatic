@@ -392,6 +392,30 @@ lab.experiment('make()', function() {
 
 lab.experiment('handler()', function() {
 
+  var env, make, _make;
+
+  lab.beforeEach(function(done) {
+    env = receiver.getEnv();
+    receiver.setEnv({
+      RECEIVER_REPO_OWNER: 'test',
+      RECEIVER_CLONE_ROOT: 'bogus/clone/root',
+      RECEIVER_STATIC_ROOT: 'bogus/static/root'
+    });
+    _make = receiver.make;
+    make = receiver.make = function() {
+      make.calls.push(Array.prototype.slice.call(arguments));
+    };
+    make.calls = [];
+    done();
+  });
+
+  lab.afterEach(function(done) {
+    receiver.setEnv(env);
+    receiver.make = _make;
+    make = null;
+    done();
+  });
+
   lab.test('GET ping', function(done) {
 
     var req = new MockReq({
@@ -406,10 +430,115 @@ lab.experiment('handler()', function() {
       lab.assert.strictEqual(res.statusCode, 200);
       var obj = res._getJSON();
       lab.assert.deepEqual(obj, {ok: true, msg: 'pong'});
+      lab.assert.lengthOf(make.calls, 0);
       done();
     });
 
     receiver.handler(req, res);
+
+  });
+
+  lab.test('PUT (method not allowed)', function(done) {
+
+    var req = new MockReq({
+      method: 'PUT',
+      url: '/'
+    });
+
+    var res = new MockRes(function() {
+      lab.assert.strictEqual(res.statusCode, 405);
+      var obj = res._getJSON();
+      lab.assert.deepEqual(obj, {ok: false, msg: 'method not allowed'});
+      lab.assert.lengthOf(make.calls, 0);
+      done();
+    });
+
+    receiver.handler(req, res);
+    req.end();
+
+  });
+
+  lab.test('POST bad event', function(done) {
+    var req = new MockReq({
+      method: 'POST',
+      url: '/',
+      headers: {
+        'x-github-event': 'bad'
+      }
+    });
+
+    var res = new MockRes(function() {
+      lab.assert.strictEqual(res.statusCode, 403);
+      var obj = res._getJSON();
+      lab.assert.deepEqual(obj, {ok: false, msg: 'bad event type'});
+      lab.assert.lengthOf(make.calls, 0);
+      done();
+    });
+
+    receiver.handler(req, res);
+    req.end();
+
+  });
+
+  lab.test('POST bad payload', function(done) {
+    var req = new MockReq({
+      method: 'POST',
+      url: '/',
+      headers: {
+        'x-github-event': 'push'
+      }
+    });
+
+    var res = new MockRes(function() {
+      lab.assert.strictEqual(res.statusCode, 400);
+      var obj = res._getJSON();
+      lab.assert.deepEqual(obj, {ok: false, msg: 'bad payload'});
+      lab.assert.lengthOf(make.calls, 0);
+      done();
+    });
+
+    receiver.handler(req, res);
+
+    req.write('invalid JSON');
+    req.end();
+
+  });
+
+  lab.test('POST valid push', function(done) {
+    var name = 'smoke';
+    var push = {
+      after: 'invalid-sha',
+      ref: 'refs/heads/master',
+      repository: {
+        url: 'https://github.com/test/bogus-repo',
+        name: 'bogus-repo',
+        master_branch: 'master'
+      }
+    };
+
+    var req = new MockReq({
+      method: 'POST',
+      url: '/',
+      headers: {
+        'x-github-event': 'push'
+      }
+    });
+
+    var res = new MockRes(function() {
+      lab.assert.strictEqual(res.statusCode, 200);
+      var obj = res._getJSON();
+      lab.assert.deepEqual(obj, {ok: true});
+      lab.assert.lengthOf(make.calls, 1);
+      var args = make.calls[0];
+      lab.assert.lengthOf(args, 1);
+      lab.assert.deepEqual(args[0], push);
+      done();
+    });
+
+    receiver.handler(req, res);
+
+    req.write(push);
+    req.end();
 
   });
 

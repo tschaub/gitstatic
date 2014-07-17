@@ -122,9 +122,9 @@ exports.handler = function(req, res) {
       res.end(JSON.stringify({ok: false, msg: 'bad payload'}));
       return;
     }
+    exports.make(push);
     res.writeHead(200, headers);
     res.end(JSON.stringify({ok: true}));
-    exports.make(push);
   });
 };
 
@@ -243,18 +243,20 @@ var run = function(job) {
 
 
 var LOG_LEVELS = {
-  debug: 3,
+  silent: 5,
+  error: 4,
+  info: 3,
   verbose: 2,
-  info: 1
+  debug: 1
 };
 
 function log(level, msg) {
   msg = util.format.apply(util, Array.prototype.slice.call(arguments, 1));
   msg = util.format('[%s] %s - %s', level, new Date().toISOString(), msg);
-  if (level === 'error') {
-    process.stderr.write(msg + '\n');
-  } else {
-    if (LOG_LEVELS[level] <= LOG_LEVELS[exports.get('RECEIVER_LOG_LEVEL')]) {
+  if (LOG_LEVELS[level] >= LOG_LEVELS[exports.get('RECEIVER_LOG_LEVEL')]) {
+    if (level === 'error') {
+      process.stderr.write(msg + '\n');
+    } else {
       process.stdout.write(msg + '\n');
     }
   }
