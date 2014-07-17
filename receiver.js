@@ -179,6 +179,11 @@ exports.make = function(push) {
 };
 
 
+function link(push) {
+  return push.repository.url + '/tree/' + push.after;
+}
+
+
 /**
  * Run a job.  If there is already a job running for the same repository, the
  * job will be queued.
@@ -192,10 +197,10 @@ var run = function(job) {
   if (runningJobs[name]) {
     var pending = pendingJobs[name];
     if (pending) {
-      log('verbose', 'removing job %s@%s from queue', name, push.after);
+      log('verbose', 'removing job %s from queue', link(push));
       pending.emitter.emit('aborted');
     }
-    log('verbose', 'queued job %s@%s', name, push.ref);
+    log('verbose', 'queued job %s', link(push));
     pendingJobs[name] = job;
     return;
   }
@@ -211,7 +216,7 @@ var run = function(job) {
 
   var builder = path.join(__dirname, 'builder.sh');
 
-  log('verbose', 'building: %s@%s', name, push.after);
+  log('verbose', 'building: %s', link(push));
   var child = spawn(builder, args);
 
   child.stdout.on('data', function(chunk) {
@@ -229,7 +234,7 @@ var run = function(job) {
       var err = new Error('Build failed with code: ' + code);
       emitter.emit('error', err);
     } else {
-      log('verbose', 'build completed: %s@%s', name, push.after);
+      log('verbose', 'build completed: %s', link(push));
       emitter.emit('end');
     }
 
@@ -253,7 +258,8 @@ var LOG_LEVELS = {
 
 function log(level, msg) {
   msg = util.format.apply(util, Array.prototype.slice.call(arguments, 1));
-  msg = util.format('[%s] %s - %s', level, new Date().toISOString(), msg);
+  msg = util.format('[%s] %s - %s',
+      level.charAt(0).toUpperCase(), new Date().toISOString(), msg);
   if (LOG_LEVELS[level] >= LOG_LEVELS[exports.get('RECEIVER_LOG_LEVEL')]) {
     if (level === 'error') {
       process.stderr.write(msg + '\n');
