@@ -560,3 +560,20 @@ lab.experiment('handler()', function() {
   });
 
 });
+
+lab.experiment('sshUrl()', function() {
+
+  lab.test('Valid GitHub HTTPS URLs', function(done) {
+
+    lab.assert.equal(
+        receiver.sshUrl('https://github.com/user/repo.git'),
+        'git@github.com:user/repo.git');
+
+    lab.assert.equal(
+        receiver.sshUrl('https://github.com/user/repo'),
+        'git@github.com:user/repo');
+
+    done();
+  });
+
+});

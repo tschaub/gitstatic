@@ -52,7 +52,8 @@ exports.get = function(key, opt_cast) {
 
 
 /**
- * Asserts that a push event payload is valid.  Throws if invalid.
+ * Asserts that a push event payload is valid.  Throws if invalid.  This also
+ * modifies the push event to use an SSH clone URL instead of HTTPS.
  * @param {Object} push Payload from push event.
  * @return {boolean} The payload is valid.
  */
@@ -190,6 +191,19 @@ function link(push) {
 
 
 /**
+ * Convert a GitHub HTTPS clone URL to a SSH clone URL.  Since push events
+ * from GitHub don't include the SSH clone URL, we have to do the conversion
+ * here.
+ * @param {string} httpsUrl HTTPS clone URL.
+ * @return {string} SSH clone URL.
+ */
+exports.sshUrl = function(httpsUrl) {
+  var parts = url.parse(httpsUrl);
+  return 'git@' + parts.hostname + ':' + parts.path.substr(1);
+};
+
+
+/**
  * Run a job.  If there is already a job running for the same repository, the
  * job will be queued.
  * @param {Job} job The job to run.
@@ -211,9 +225,22 @@ var run = function(job) {
   }
   runningJobs[name] = job;
 
+  // GitHub push events don't include the SSH clone URL
+  // so we force a conversion here
+  var cloneUrl = push.repository.url;
+  if (exports.get('RECEIVER_USE_SSH') === 'true') {
+    try {
+      cloneUrl = exports.sshUrl(cloneUrl);
+    } catch (err) {
+      log('error', 'Unable to convert to SSH clone URL: %s', cloneUrl);
+      emitter.emit('error', err);
+      return;
+    }
+  }
+
   var args = [
     push.repository.name,
-    push.repository.url,
+    cloneUrl,
     push.after,
     path.resolve(exports.get('RECEIVER_CLONE_ROOT')),
     path.resolve(exports.get('RECEIVER_STATIC_ROOT'))
@@ -298,6 +325,7 @@ if (require.main === module) {
     RECEIVER_CLONE_ROOT: 'repos',
     RECEIVER_STATIC_ROOT: 'sites',
     RECEIVER_LOG_LEVEL: 'info',
+    RECEIVER_USE_SSH: 'true',
     RECEIVER_PORT: '8000'
   }));
 
