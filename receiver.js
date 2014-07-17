@@ -106,7 +106,6 @@ exports.handler = function(req, res) {
     return;
   }
 
-  log('debug', 'handling push event');
   var body = '';
   req.on('data', function(buffer) {
     body += String(buffer);
@@ -122,6 +121,7 @@ exports.handler = function(req, res) {
       res.end(JSON.stringify({ok: false, msg: 'bad payload'}));
       return;
     }
+    log('debug', 'handling push event: %j', push);
     var emitter = exports.make(push);
     if (emitter) {
       emitter.on('error', function(err) {
