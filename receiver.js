@@ -122,7 +122,12 @@ exports.handler = function(req, res) {
       res.end(JSON.stringify({ok: false, msg: 'bad payload'}));
       return;
     }
-    exports.make(push);
+    var emitter = exports.make(push);
+    if (emitter) {
+      emitter.on('error', function(err) {
+        // logged elsewhere, but if not handled here, it will be thrown
+      });
+    }
     res.writeHead(200, headers);
     res.end(JSON.stringify({ok: true}));
   });
