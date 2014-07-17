@@ -63,5 +63,4 @@ fi
 TMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t $NAME`
 tar xzf $TGZ -C $TMP_DIR
 
-rsync --recursive --update --delete --perms --extended-attributes \
-    $TMP_DIR/* $SITE_DIR 1>/dev/null
+rsync --recursive --update --delete --perms $TMP_DIR/* $SITE_DIR 1>/dev/null
