@@ -1,4 +1,5 @@
 var assert = require('assert');
+var events = require('events');
 var http = require('http');
 var path = require('path');
 var spawn = require('child_process').spawn;
@@ -131,16 +132,16 @@ exports.handler = function(req, res) {
 /**
  * Make the site based on a push event.
  * @param {Object} push Push event.
- * @param {function(Error)} opt_callback Called with any error.
+ * @return {events.EventEmitter} An event emitter (or `null` if no job was
+ *     started).  This will fire an `error` event if the job fails or an `end`
+ *     event if it succeeds.
  */
-exports.make = function(push, opt_callback) {
+exports.make = function(push) {
+  var emitter = new events.EventEmitter();
   if (push.ref !== 'refs/heads/' + push.repository.master_branch) {
     log('debug', 'skipping push for %s of %s (default branch is %s)',
         push.ref, push.repository.url, push.repository.master_branch);
-    if (opt_callback) {
-      opt_callback(null);
-    }
-    return;
+    return null;
   }
 
   var args = [
@@ -165,15 +166,15 @@ exports.make = function(push, opt_callback) {
   });
 
   child.on('exit', function(code) {
-    var err = null;
     if (code) {
       log('error', 'build failed: %s %s', builder, args.join(' '));
-      err = new Error('Build failed with code: ' + code);
-    }
-    if (opt_callback) {
-      opt_callback(err);
+      var err = new Error('Build failed with code: ' + code);
+      emitter.emit('error', err);
+    } else {
+      emitter.emit('end');
     }
   });
+  return emitter;
 };
 
 

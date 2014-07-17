@@ -1,3 +1,4 @@
+var events = require('events');
 var fs = require('fs');
 var path = require('path');
 
@@ -276,11 +277,12 @@ lab.experiment('make()', function() {
       }
     };
 
-    receiver.make(push, function(err) {
-      if (err) {
-        done(err);
-        return;
-      }
+    var emitter = receiver.make(push);
+    lab.assert.instanceOf(emitter, events.EventEmitter);
+
+    emitter.on('error', done);
+
+    emitter.on('end', function() {
       var output = path.join(scratch, 'sites', name, 'ok');
       fs.exists(output, function(exists) {
         lab.assert.strictEqual(exists, true, output + ' exists');
@@ -302,19 +304,22 @@ lab.experiment('make()', function() {
       }
     };
 
-    receiver.make(push, function(err) {
-      if (err) {
-        done(err);
-        return;
-      }
+    var emitter = receiver.make(push);
+    lab.assert.instanceOf(emitter, events.EventEmitter);
+
+    emitter.on('error', done);
+
+    emitter.on('end', function() {
       var output = path.join(scratch, 'sites', name, 'ok');
       fs.exists(output, function(exists) {
         lab.assert.strictEqual(exists, true, output + ' exists');
-        receiver.make(push, function(err) {
-          if (err) {
-            done(err);
-            return;
-          }
+
+        var emitter = receiver.make(push);
+        lab.assert.instanceOf(emitter, events.EventEmitter);
+
+        emitter.on('error', done);
+
+        emitter.on('end', function() {
           var output = path.join(scratch, 'sites', name, 'ok');
           fs.exists(output, function(exists) {
             lab.assert.strictEqual(exists, true, output + ' exists');
