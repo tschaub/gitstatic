@@ -6,7 +6,7 @@ Make static sites with GitHub webhooks.
 
 Setting up the gitstatic service requires the following:
 
- * [`bash`](http://www.gnu.org/software/bash/)
+ * [`bash`](http://www.gnu.org/software/bash/) (Tested on x86_64-apple-darwin13 and linux)
  * [`git`](http://git-scm.com/) (Tested with `1.8`, may work with others)
  * [`node`](http://nodejs.org/) (Tests require `>=0.10` but service should run on `0.8.x`)
 
