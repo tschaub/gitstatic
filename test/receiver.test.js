@@ -1,5 +1,6 @@
 var events = require('events');
 var fs = require('fs');
+var http = require('http');
 var path = require('path');
 
 var MockReq = require('mock-req');
@@ -384,6 +385,31 @@ lab.experiment('make()', function() {
       lab.assert.strictEqual(completed, 2, 'two jobs completed');
       done();
     });
+
+  });
+
+});
+
+lab.experiment('handler()', function() {
+
+  lab.test('GET ping', function(done) {
+
+    var req = new MockReq({
+      method: 'GET',
+      url: '/',
+      headers: {
+        'x-github-event': 'ping'
+      }
+    });
+
+    var res = new MockRes(function() {
+      lab.assert.strictEqual(res.statusCode, 200);
+      var obj = res._getJSON();
+      lab.assert.deepEqual(obj, {ok: true, msg: 'pong'});
+      done();
+    });
+
+    receiver.handler(req, res);
 
   });
 
