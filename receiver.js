@@ -185,6 +185,11 @@ exports.make = function(push) {
 };
 
 
+/**
+ * Generate a link to the GitHub page for the pushed commit.
+ * @param {Object} push A push event.
+ * @return {string} A URL.
+ */
 function link(push) {
   return push.repository.url + '/tree/' + push.after;
 }
@@ -216,7 +221,7 @@ var run = function(job) {
   if (runningJobs[name]) {
     var pending = pendingJobs[name];
     if (pending) {
-      log('verbose', 'removing job %s from queue', link(push));
+      log('verbose', 'removing job %s from queue', link(pending.push));
       pending.emitter.emit('aborted');
     }
     log('verbose', 'queued job %s', link(push));
@@ -248,7 +253,7 @@ var run = function(job) {
 
   var builder = path.join(__dirname, 'builder.sh');
 
-  log('verbose', 'building: %s', link(push));
+  log('info', 'building: %s', link(push));
   var child = spawn(builder, args);
 
   child.stdout.on('data', function(chunk) {
@@ -266,7 +271,7 @@ var run = function(job) {
       var err = new Error('Build failed with code: ' + code);
       emitter.emit('error', err);
     } else {
-      log('verbose', 'build completed: %s', link(push));
+      log('info', 'build completed: %s', link(push));
       emitter.emit('end');
     }
 
