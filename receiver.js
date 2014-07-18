@@ -322,8 +322,8 @@ if (require.main === module) {
 
   // set up environment with some defaults
   exports.setEnv(defaults({}, process.env, {
-    RECEIVER_CLONE_ROOT: 'repos',
-    RECEIVER_STATIC_ROOT: 'sites',
+    RECEIVER_CLONE_ROOT: path.resolve(__dirname, 'repos'),
+    RECEIVER_STATIC_ROOT: path.resolve(__dirname, 'sites'),
     RECEIVER_LOG_LEVEL: 'info',
     RECEIVER_USE_SSH: 'true',
     RECEIVER_PORT: '8000'
