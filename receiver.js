@@ -52,8 +52,8 @@ exports.get = function(key, opt_cast) {
 
 
 /**
- * Asserts that a push event payload is valid.  Throws if invalid.  This also
- * modifies the push event to use an SSH clone URL instead of HTTPS.
+ * Asserts that a push event payload is valid.  Throws `assert.AssertionError`
+ * if invalid.
  * @param {Object} push Payload from push event.
  * @return {boolean} The payload is valid.
  */
