@@ -7,6 +7,9 @@
     "url": "http://tschaub.net/"
   },
   "main": "receiver.js",
+  "bin": {
+    "gitstatic": "./receiver.js"
+  },
   "scripts": {
     "test": "lab"
   },
