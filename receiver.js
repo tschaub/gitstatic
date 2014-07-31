@@ -4,6 +4,7 @@ var http = require('http');
 var path = require('path');
 var spawn = require('child_process').spawn;
 var url = require('url');
+var sshUrl = require('ssh-url');
 var util = require('util');
 
 
@@ -60,13 +61,13 @@ exports.get = function(key, opt_cast) {
 exports.assertValid = function(push) {
   assert.ok(push.repository, 'no repository');
 
-  // confirm the repo url is valid
+  // confirm the ssh url is valid
   var parsed;
   assert.doesNotThrow(function() {
-    parsed = url.parse(push.repository.url);
+    parsed = sshUrl.parse(push.repository.ssh_url);
   });
-  var message = 'bad repository url: ' + parsed.href;
-  assert.equal(parsed.protocol, 'https:', message);
+  var message = 'bad repository url: ' + push.repository.ssh_url;
+  assert.equal(parsed.user, 'git', message);
   assert.equal(parsed.hostname, 'github.com', message);
   var parts = parsed.pathname.split('/');
   assert.equal(parts.length, 3, message);
@@ -230,15 +231,11 @@ function run(job) {
 
   // GitHub push events don't include the SSH clone URL
   // so we force a conversion here
-  var cloneUrl = push.repository.url;
+  var cloneUrl;
   if (exports.get('RECEIVER_USE_SSH') === 'true') {
-    try {
-      cloneUrl = exports.sshUrl(cloneUrl);
-    } catch (err) {
-      log('error', 'Unable to convert to SSH clone URL: %s', cloneUrl);
-      emitter.emit('error', err);
-      return;
-    }
+    cloneUrl = push.repository.ssh_url;
+  } else {
+    cloneUrl = push.repository.url;
   }
 
   var args = [
