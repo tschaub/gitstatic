@@ -164,6 +164,20 @@ lab.experiment('assertValid()', function() {
   lab.test('bad repository url', function(done) {
 
     lab.assert.throws(function() {
+      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
+      var push = {
+        after: 'asdf',
+        ref: 'refs/heads/master',
+        repository: {
+          url: 'http://github.com/test/repo',
+          name: 'repo',
+          master_branch: 'master'
+        }
+      };
+      receiver.assertValid(push);
+    }, 'bad repository url', 'wrong protocol');
+
+    lab.assert.throws(function() {
       receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
       var push = {
         after: 'asdf',
