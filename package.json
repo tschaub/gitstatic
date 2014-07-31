@@ -8,7 +8,7 @@
   },
   "main": "receiver.js",
   "scripts": {
-    "test": "lab"
+    "test": "jshint receiver.js test && lab"
   },
   "repository": {
     "type": "git",
@@ -29,6 +29,7 @@
     "tar.gz": "^0.1.1",
     "temp": "^0.8.0",
     "mock-res": "https://github.com/tschaub/mock-res/tarball/write-head",
-    "mock-req": "~0.1.0"
+    "mock-req": "~0.1.0",
+    "jshint": "~2.5.2"
   }
 }

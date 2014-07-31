@@ -365,7 +365,7 @@ lab.experiment('make()', function() {
     lab.assert.instanceOf(emitter1, events.EventEmitter);
     emitter1.on('error', done);
     emitter1.on('aborted', function() {
-      done(new Erorr('Unexpected abort for job'));
+      done(new Error('Unexpected abort for job'));
     });
 
     var emitter2 = receiver.make(push);
@@ -380,7 +380,7 @@ lab.experiment('make()', function() {
     lab.assert.instanceOf(emitter4, events.EventEmitter);
     emitter4.on('error', done);
     emitter4.on('aborted', function() {
-      done(new Erorr('Unexpected abort for job'));
+      done(new Error('Unexpected abort for job'));
     });
 
     // the first and last jobs should run, others should be ignored
