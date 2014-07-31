@@ -4,7 +4,6 @@ var http = require('http');
 var path = require('path');
 var spawn = require('child_process').spawn;
 var url = require('url');
-var sshUrl = require('ssh-url');
 var util = require('util');
 
 
@@ -70,6 +69,36 @@ function stripSuffix(suffix, str) {
 
 
 /*
+ * Parse an SSH url, optionally SCP-style (ie, user@host:path/to/something)
+ * @param {String} url
+ * @return {Object}
+ */
+function parseSshUrl(urlString) {
+  if (typeof urlString !== 'string') {
+    throw new TypeError('Parameter \'url\' must be a string');
+  }
+  var parsed;
+  if (urlString.indexOf('ssh://') === 0) {
+    parsed = url.parse(urlString);
+    return {
+      protocol: parsed.protocol,
+      user: parsed.auth,
+      hostname: parsed.hostname,
+      pathname: parsed.pathname,
+    };
+  } else {
+    parsed = url.parse('ssh://' + urlString);
+    return {
+      protocol: null,
+      user: parsed.auth,
+      hostname: parsed.hostname,
+      pathname: (parsed.pathname || '').replace(/^\/:/, '/'),
+    };
+  }
+}
+
+
+/*
  * Asserts that an SSH url included in a push event payload is valid. Throws
  * `assert.AssertionError` if invalid.
  * @param {string} url SSH url
@@ -78,7 +107,7 @@ function stripSuffix(suffix, str) {
 function assertValidSshUrl(urlString) {
   var parsed;
   assert.doesNotThrow(function() {
-    parsed = sshUrl.parse(urlString);
+    parsed = parseSshUrl(urlString);
   });
   var message = 'bad repository url: ' + urlString;
   assert.equal(parsed.user, 'git', message);
