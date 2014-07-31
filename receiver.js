@@ -82,6 +82,38 @@ exports.assertValid = function(push) {
 
 
 /**
+ * Log levels.
+ * @enum {string}
+ */
+var LOG_LEVELS = {
+  silent: 5,
+  error: 4,
+  info: 3,
+  verbose: 2,
+  debug: 1
+};
+
+
+/**
+ * Log a message.
+ * @param {string} level Log level.
+ * @param {string} msg Message.
+ */
+function log(level, msg) {
+  msg = util.format.apply(util, Array.prototype.slice.call(arguments, 1));
+  msg = util.format('[%s] %s - %s',
+      level.charAt(0).toUpperCase(), new Date().toISOString(), msg);
+  if (LOG_LEVELS[level] >= LOG_LEVELS[exports.get('RECEIVER_LOG_LEVEL')]) {
+    if (level === 'error') {
+      process.stderr.write(msg + '\n');
+    } else {
+      process.stdout.write(msg + '\n');
+    }
+  }
+}
+
+
+/**
  * HTTP request listener.
  * @param {http.IncomingMessage} req Request.
  * @param {http.ClientResponse} res Response.
@@ -165,27 +197,6 @@ exports.Job = function(push, emitter) {
 
 
 /**
- * Make the site based on a push event.
- * @param {Object} push Push event.
- * @return {events.EventEmitter} An event emitter (or `null` if no job was
- *     started).  This will fire an `error` event if the job fails, an `end`
- *     event if it succeeds, or an `abort` event if it is not run due to another
- *     job being scheduled for the same repository.
- */
-exports.make = function(push) {
-  if (push.ref !== 'refs/heads/' + push.repository.master_branch) {
-    log('debug', 'skipping push for %s of %s (default branch is %s)',
-        push.ref, push.repository.url, push.repository.master_branch);
-    return null;
-  }
-  var emitter = new events.EventEmitter();
-  var job = new exports.Job(push, emitter);
-  process.nextTick(run.bind(null, job));
-  return emitter;
-};
-
-
-/**
  * Generate a link to the GitHub page for the pushed commit.
  * @param {Object} push A push event.
  * @return {string} A URL.
@@ -196,24 +207,11 @@ function link(push) {
 
 
 /**
- * Convert a GitHub HTTPS clone URL to a SSH clone URL.  Since push events
- * from GitHub don't include the SSH clone URL, we have to do the conversion
- * here.
- * @param {string} httpsUrl HTTPS clone URL.
- * @return {string} SSH clone URL.
- */
-exports.sshUrl = function(httpsUrl) {
-  var parts = url.parse(httpsUrl);
-  return 'git@' + parts.hostname + ':' + parts.path.substr(1);
-};
-
-
-/**
  * Run a job.  If there is already a job running for the same repository, the
  * job will be queued.
  * @param {Job} job The job to run.
  */
-var run = function(job) {
+function run(job) {
   var push = job.push;
   var emitter = job.emitter;
   var name = push.repository.name;
@@ -282,34 +280,54 @@ var run = function(job) {
       process.nextTick(run.bind(null, pending));
     }
   });
-};
-
-
-var LOG_LEVELS = {
-  silent: 5,
-  error: 4,
-  info: 3,
-  verbose: 2,
-  debug: 1
-};
-
-function log(level, msg) {
-  msg = util.format.apply(util, Array.prototype.slice.call(arguments, 1));
-  msg = util.format('[%s] %s - %s',
-      level.charAt(0).toUpperCase(), new Date().toISOString(), msg);
-  if (LOG_LEVELS[level] >= LOG_LEVELS[exports.get('RECEIVER_LOG_LEVEL')]) {
-    if (level === 'error') {
-      process.stderr.write(msg + '\n');
-    } else {
-      process.stdout.write(msg + '\n');
-    }
-  }
 }
 
+
+/**
+ * Make the site based on a push event.
+ * @param {Object} push Push event.
+ * @return {events.EventEmitter} An event emitter (or `null` if no job was
+ *     started).  This will fire an `error` event if the job fails, an `end`
+ *     event if it succeeds, or an `abort` event if it is not run due to another
+ *     job being scheduled for the same repository.
+ */
+exports.make = function(push) {
+  if (push.ref !== 'refs/heads/' + push.repository.master_branch) {
+    log('debug', 'skipping push for %s of %s (default branch is %s)',
+        push.ref, push.repository.url, push.repository.master_branch);
+    return null;
+  }
+  var emitter = new events.EventEmitter();
+  var job = new exports.Job(push, emitter);
+  process.nextTick(run.bind(null, job));
+  return emitter;
+};
+
+
+/**
+ * Convert a GitHub HTTPS clone URL to a SSH clone URL.  Since push events
+ * from GitHub don't include the SSH clone URL, we have to do the conversion
+ * here.
+ * @param {string} httpsUrl HTTPS clone URL.
+ * @return {string} SSH clone URL.
+ */
+exports.sshUrl = function(httpsUrl) {
+  var parts = url.parse(httpsUrl);
+  return 'git@' + parts.hostname + ':' + parts.path.substr(1);
+};
+
+
+/**
+ * Assign properties from source objects to target if property names are not
+ * present in target.
+ * @param {Object} target Target object.
+ * @param {Object} source Source object(s).
+ * @return {Object} The modified target object.
+ */
 function defaults(target, source) {
   var args = Array.prototype.slice.call(arguments);
   target = args.shift();
-  while (source = args.shift()) {
+  for (source = args.shift(); source; source = args.shift()) {
     for (var key in source) {
       if (!(key in target)) {
         target[key] = source[key];
