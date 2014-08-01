@@ -51,6 +51,97 @@ exports.get = function(key, opt_cast) {
 };
 
 
+/*
+ * Remove a string from the end of a string if it is a suffix; otherwise,
+ * return the string unchanged.
+ * @param {String} suffix
+ * @param {String} string
+ * @return {String}
+ */
+function stripSuffix(suffix, str) {
+  var lastIndex = str.lastIndexOf(suffix);
+  if (lastIndex === str.length - suffix.length) {
+    return str.substring(0, lastIndex);
+  } else {
+    return str;
+  }
+}
+
+
+/*
+ * Parse an SSH url, optionally SCP-style (ie, user@host:path/to/something)
+ * @param {String} url
+ * @return {Object}
+ */
+function parseSshUrl(urlString) {
+  if (typeof urlString !== 'string') {
+    throw new TypeError('Parameter \'url\' must be a string');
+  }
+  var parsed;
+  if (urlString.indexOf('ssh://') === 0) {
+    parsed = url.parse(urlString);
+    return {
+      protocol: parsed.protocol,
+      user: parsed.auth,
+      hostname: parsed.hostname,
+      pathname: parsed.pathname,
+    };
+  } else {
+    parsed = url.parse('ssh://' + urlString);
+    return {
+      protocol: null,
+      user: parsed.auth,
+      hostname: parsed.hostname,
+      pathname: (parsed.pathname || '').replace(/^\/:/, '/'),
+    };
+  }
+}
+
+
+/*
+ * Asserts that an SSH url included in a push event payload is valid. Throws
+ * `assert.AssertionError` if invalid.
+ * @param {string} url SSH url
+ * @return {Object} information obtained from parsing the url.
+ */
+function assertValidSshUrl(urlString) {
+  var parsed;
+  assert.doesNotThrow(function() {
+    parsed = parseSshUrl(urlString);
+  });
+  var message = 'bad repository url: ' + urlString;
+  assert.equal(parsed.user, 'git', message);
+  assert.equal(parsed.hostname, 'github.com', message);
+  var parts = parsed.pathname.split('/');
+  return {
+    'owner': parts[1],
+    'name': stripSuffix('.git', parts[2])
+  };
+}
+
+
+/*
+ * Asserts that an HTTPS url included in a push event payload is valid. Throws
+ * `assert.AssertionError` if invalid.
+ * @param {string} url HTTPS url
+ * @return {Object} information obtained from parsing the url.
+ */
+function assertValidHttpsUrl(urlString) {
+  var parsed;
+  assert.doesNotThrow(function() {
+    parsed = url.parse(urlString);
+  });
+  var message = 'bad repository url: ' + urlString;
+  assert.equal(parsed.protocol, 'https:', message);
+  assert.equal(parsed.hostname, 'github.com', message);
+  var parts = parsed.pathname.split('/');
+  return {
+    'owner': parts[1],
+    'name': parts[2]
+  };
+}
+
+
 /**
  * Asserts that a push event payload is valid.  Throws `assert.AssertionError`
  * if invalid.
@@ -60,20 +151,16 @@ exports.get = function(key, opt_cast) {
 exports.assertValid = function(push) {
   assert.ok(push.repository, 'no repository');
 
-  // confirm the repo url is valid
-  var parsed;
-  assert.doesNotThrow(function() {
-    parsed = url.parse(push.repository.url);
-  });
-  var message = 'bad repository url: ' + parsed.href;
-  assert.equal(parsed.protocol, 'https:', message);
-  assert.equal(parsed.hostname, 'github.com', message);
-  var parts = parsed.pathname.split('/');
-  assert.equal(parts.length, 3, message);
-  assert.equal(parts[1], exports.get('RECEIVER_REPO_OWNER'), message);
+  var urlInfo = assertValidHttpsUrl(push.repository.url);
+  if (exports.get('RECEIVER_USE_SSH') === 'true') {
+    urlInfo = assertValidSshUrl(push.repository.ssh_url);
+  }
+
+  assert.equal(urlInfo.owner, exports.get('RECEIVER_REPO_OWNER'),
+      'bad repo owner');
+  assert.equal(urlInfo.name, push.repository.name, 'bad repo name');
 
   // confirm other details are present
-  assert.equal(push.repository.name, parts[2], 'bad repo name');
   assert.equal(typeof push.repository.master_branch, 'string', 'no master');
   assert.equal(typeof push.ref, 'string', 'no ref');
   assert.equal(typeof push.after, 'string', 'no after');
@@ -230,15 +317,11 @@ function run(job) {
 
   // GitHub push events don't include the SSH clone URL
   // so we force a conversion here
-  var cloneUrl = push.repository.url;
+  var cloneUrl;
   if (exports.get('RECEIVER_USE_SSH') === 'true') {
-    try {
-      cloneUrl = exports.sshUrl(cloneUrl);
-    } catch (err) {
-      log('error', 'Unable to convert to SSH clone URL: %s', cloneUrl);
-      emitter.emit('error', err);
-      return;
-    }
+    cloneUrl = push.repository.ssh_url;
+  } else {
+    cloneUrl = push.repository.url;
   }
 
   var args = [

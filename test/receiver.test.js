@@ -18,7 +18,8 @@ lab.experiment('assertValid()', function() {
   lab.beforeEach(function(done) {
     env = receiver.getEnv();
     receiver.setEnv({
-      RECEIVER_REPO_OWNER: 'test'
+      RECEIVER_REPO_OWNER: 'test',
+      RECEIVER_USE_SSH: 'false',
     });
     done();
   });
@@ -163,6 +164,7 @@ lab.experiment('assertValid()', function() {
   lab.test('bad repository url', function(done) {
 
     lab.assert.throws(function() {
+      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -176,6 +178,22 @@ lab.experiment('assertValid()', function() {
     }, 'bad repository url', 'wrong protocol');
 
     lab.assert.throws(function() {
+      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+      var push = {
+        after: 'asdf',
+        ref: 'refs/heads/master',
+        repository: {
+          url: 'https://github.com/test/repo',
+          ssh_url: 'foo@github.com:test/repo',
+          name: 'repo',
+          master_branch: 'master'
+        }
+      };
+      receiver.assertValid(push);
+    }, 'bad repository url', 'wrong user');
+
+    lab.assert.throws(function() {
+      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -189,6 +207,22 @@ lab.experiment('assertValid()', function() {
     }, 'bad repository url', 'wrong hostname');
 
     lab.assert.throws(function() {
+      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+      var push = {
+        after: 'asdf',
+        ref: 'refs/heads/master',
+        repository: {
+          url: 'https://example.com/test/repo',
+          ssh_url: 'git@example.com:test/repo.git',
+          name: 'repo',
+          master_branch: 'master'
+        }
+      };
+      receiver.assertValid(push);
+    }, 'bad repository url', 'wrong hostname');
+
+    lab.assert.throws(function() {
+      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -199,7 +233,22 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repository url', 'wrong owner');
+    }, 'bad repo owner', 'wrong owner');
+
+    lab.assert.throws(function() {
+      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+      var push = {
+        after: 'asdf',
+        ref: 'refs/heads/master',
+        repository: {
+          url: 'https://github.com/foo/repo',
+          ssh_url: 'git@github.com:foo/repo.git',
+          name: 'repo',
+          master_branch: 'master'
+        }
+      };
+      receiver.assertValid(push);
+    }, 'bad repo owner', 'wrong owner');
 
     done();
   });
@@ -557,23 +606,6 @@ lab.experiment('handler()', function() {
     req.write(push);
     req.end();
 
-  });
-
-});
-
-lab.experiment('sshUrl()', function() {
-
-  lab.test('Valid GitHub HTTPS URLs', function(done) {
-
-    lab.assert.equal(
-        receiver.sshUrl('https://github.com/user/repo.git'),
-        'git@github.com:user/repo.git');
-
-    lab.assert.equal(
-        receiver.sshUrl('https://github.com/user/repo'),
-        'git@github.com:user/repo');
-
-    done();
   });
 
 });
