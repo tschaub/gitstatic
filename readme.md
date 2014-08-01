@@ -32,7 +32,7 @@ The `receiver.js` script is configured with a number of environment variables.
 | `RECEIVER_STATIC_ROOT` | Path to a directory where all static site content will be copied.  By default, sites are generated in a `sites` directory relative to the `receiver.js` script.  For example, a repository named `foo` would result in static site content at `$RECEIVER_STATIC_ROOT/foo`.  The static root directory will be created if it doesn't exist. |
 | `RECEIVER_CLONES_ROOT` | Repositories will be cloned into this directory.  By default, repositories are cloned in a `repos` directory relative to the `receiver.js` script. The clones root directory will be created if it doesn't exist. |
 | `RECEIVER_LOG_LEVEL`   | Logging level.  Default is `info`.  Also accepts `silent` (nothing, not even errors), `error` (only errors), `info`, `verbose`, and `debug`.  From left to right, these result in more detailed output. |
-
+| `RECEIVER_USE_SSH`     | Whether to use the `ssh_url` for cloning the repository. Default is `true`. |
 
 ### Running
 
