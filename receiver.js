@@ -151,11 +151,9 @@ function assertValidHttpsUrl(urlString) {
 exports.assertValid = function(push) {
   assert.ok(push.repository, 'no repository');
 
-  var urlInfo;
+  var urlInfo = assertValidHttpsUrl(push.repository.url);
   if (exports.get('RECEIVER_USE_SSH') === 'true') {
     urlInfo = assertValidSshUrl(push.repository.ssh_url);
-  } else {
-    urlInfo = assertValidHttpsUrl(push.repository.url);
   }
 
   assert.equal(urlInfo.owner, exports.get('RECEIVER_REPO_OWNER'),

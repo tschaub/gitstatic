@@ -183,6 +183,7 @@ lab.experiment('assertValid()', function() {
         after: 'asdf',
         ref: 'refs/heads/master',
         repository: {
+          url: 'https://github.com/test/repo',
           ssh_url: 'foo@github.com:test/repo',
           name: 'repo',
           master_branch: 'master'
@@ -211,6 +212,7 @@ lab.experiment('assertValid()', function() {
         after: 'asdf',
         ref: 'refs/heads/master',
         repository: {
+          url: 'https://example.com/test/repo',
           ssh_url: 'git@example.com:test/repo.git',
           name: 'repo',
           master_branch: 'master'
@@ -239,6 +241,7 @@ lab.experiment('assertValid()', function() {
         after: 'asdf',
         ref: 'refs/heads/master',
         repository: {
+          url: 'https://github.com/foo/repo',
           ssh_url: 'git@github.com:foo/repo.git',
           name: 'repo',
           master_branch: 'master'
