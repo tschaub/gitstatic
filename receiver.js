@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 var assert = require('assert');
 var events = require('events');
 var http = require('http');
@@ -364,3 +366,4 @@ if (require.main === module) {
   });
 
 }
+})();
