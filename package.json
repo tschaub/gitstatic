@@ -19,8 +19,8 @@
   },
   "licenses": [
     {
-      "type": "MIT",
-      "url": "http://tschaub.mit-license.org/"
+      "type": "Apache 2.0",
+      "url": "https://www.tldrlegal.com/l/apache2"
     }
   ],
   "devDependencies": {
