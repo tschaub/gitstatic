@@ -1,7 +1,5 @@
 # gitstatic
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/tschaub/gitstatic.svg)](https://greenkeeper.io/)
-
 **Make Static Sites with GitHub Webhooks**
 
 The gitstatic project provides a server that listens for events from GitHub repositories.  Whenever new commits are pushed to the default branch of your repository, the service will fetch the latest, run `make`, and update a static site with content from the generated archive.
