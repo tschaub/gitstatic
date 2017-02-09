@@ -4,7 +4,6 @@ var TarGZ = require('tar.gz');
 var events = require('events');
 var expect = require('code').expect;
 var fs = require('fs');
-var http = require('http');
 var lab = exports.lab = require('lab').script();
 var path = require('path');
 var rimraf = require('rimraf');
@@ -19,7 +18,7 @@ lab.experiment('assertValid()', function() {
     env = receiver.getEnv();
     receiver.setEnv({
       RECEIVER_REPO_OWNER: 'test',
-      RECEIVER_USE_SSH: 'false',
+      RECEIVER_USE_SSH: 'false'
     });
     done();
   });
@@ -164,7 +163,7 @@ lab.experiment('assertValid()', function() {
   lab.test('bad repository url', function(done) {
 
     expect(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
+      receiver.setEnv({RECEIVER_USE_SSH: 'false'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -178,7 +177,7 @@ lab.experiment('assertValid()', function() {
     }).to.throw(Error, 'bad repository url: http://github.com/test/repo');
 
     expect(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+      receiver.setEnv({RECEIVER_USE_SSH: 'true'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -193,7 +192,7 @@ lab.experiment('assertValid()', function() {
     }).to.throw(Error, 'bad repository url: foo@github.com:test/repo');
 
     expect(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
+      receiver.setEnv({RECEIVER_USE_SSH: 'false'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -207,7 +206,7 @@ lab.experiment('assertValid()', function() {
     }).to.throw(Error, 'bad repository url: https://example.com/test/repo');
 
     expect(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+      receiver.setEnv({RECEIVER_USE_SSH: 'true'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -222,7 +221,7 @@ lab.experiment('assertValid()', function() {
     }).to.throw(Error, 'bad repository url: https://example.com/test/repo');
 
     expect(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
+      receiver.setEnv({RECEIVER_USE_SSH: 'false'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -236,7 +235,7 @@ lab.experiment('assertValid()', function() {
     }).to.throw(Error, 'bad repo owner');
 
     expect(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+      receiver.setEnv({RECEIVER_USE_SSH: 'true'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -571,7 +570,6 @@ lab.experiment('handler()', function() {
   });
 
   lab.test('POST valid push', function(done) {
-    var name = 'smoke';
     var push = {
       after: 'invalid-sha',
       ref: 'refs/heads/master',
