@@ -1,14 +1,13 @@
-var events = require('events');
-var fs = require('fs');
-var http = require('http');
-var path = require('path');
-
 var MockReq = require('mock-req');
 var MockRes = require('mock-res');
 var TarGZ = require('tar.gz');
-var lab = require('lab');
-var temp = require('temp');
+var events = require('events');
+var expect = require('code').expect;
+var fs = require('fs');
+var lab = exports.lab = require('lab').script();
+var path = require('path');
 var rimraf = require('rimraf');
+var temp = require('temp');
 
 var receiver = require('../receiver');
 
@@ -19,7 +18,7 @@ lab.experiment('assertValid()', function() {
     env = receiver.getEnv();
     receiver.setEnv({
       RECEIVER_REPO_OWNER: 'test',
-      RECEIVER_USE_SSH: 'false',
+      RECEIVER_USE_SSH: 'false'
     });
     done();
   });
@@ -40,7 +39,7 @@ lab.experiment('assertValid()', function() {
       }
     };
 
-    lab.assert.ok(receiver.assertValid(push));
+    expect(receiver.assertValid(push)).to.be.true();
 
     done();
   });
@@ -55,9 +54,9 @@ lab.experiment('assertValid()', function() {
       }
     };
 
-    lab.assert.throws(function() {
+    expect(function() {
       receiver.assertValid(push);
-    }, 'no after');
+    }).to.throw(Error, 'no after');
 
     done();
   });
@@ -72,9 +71,9 @@ lab.experiment('assertValid()', function() {
       }
     };
 
-    lab.assert.throws(function() {
+    expect(function() {
       receiver.assertValid(push);
-    }, 'no ref');
+    }).to.throw(Error, 'no ref');
 
     done();
   });
@@ -85,9 +84,9 @@ lab.experiment('assertValid()', function() {
       ref: 'refs/heads/master'
     };
 
-    lab.assert.throws(function() {
+    expect(function() {
       receiver.assertValid(push);
-    }, 'no repository');
+    }).to.throw(Error, 'no repository');
 
     done();
   });
@@ -102,9 +101,9 @@ lab.experiment('assertValid()', function() {
       }
     };
 
-    lab.assert.throws(function() {
+    expect(function() {
       receiver.assertValid(push);
-    });
+    }).to.throw(Error);
 
     done();
   });
@@ -119,9 +118,9 @@ lab.experiment('assertValid()', function() {
       }
     };
 
-    lab.assert.throws(function() {
+    expect(function() {
       receiver.assertValid(push);
-    }, 'bad repo name');
+    }).to.throw(Error, 'bad repo name');
 
     done();
   });
@@ -137,9 +136,9 @@ lab.experiment('assertValid()', function() {
       }
     };
 
-    lab.assert.throws(function() {
+    expect(function() {
       receiver.assertValid(push);
-    }, 'bad repo name');
+    }).to.throw(Error, 'bad repo name');
 
     done();
   });
@@ -154,17 +153,17 @@ lab.experiment('assertValid()', function() {
       }
     };
 
-    lab.assert.throws(function() {
+    expect(function() {
       receiver.assertValid(push);
-    }, 'no master');
+    }).to.throw(Error, 'no master');
 
     done();
   });
 
   lab.test('bad repository url', function(done) {
 
-    lab.assert.throws(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
+    expect(function() {
+      receiver.setEnv({RECEIVER_USE_SSH: 'false'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -175,10 +174,10 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repository url', 'wrong protocol');
+    }).to.throw(Error, 'bad repository url: http://github.com/test/repo');
 
-    lab.assert.throws(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+    expect(function() {
+      receiver.setEnv({RECEIVER_USE_SSH: 'true'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -190,10 +189,10 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repository url', 'wrong user');
+    }).to.throw(Error, 'bad repository url: foo@github.com:test/repo');
 
-    lab.assert.throws(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
+    expect(function() {
+      receiver.setEnv({RECEIVER_USE_SSH: 'false'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -204,10 +203,10 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repository url', 'wrong hostname');
+    }).to.throw(Error, 'bad repository url: https://example.com/test/repo');
 
-    lab.assert.throws(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+    expect(function() {
+      receiver.setEnv({RECEIVER_USE_SSH: 'true'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -219,10 +218,10 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repository url', 'wrong hostname');
+    }).to.throw(Error, 'bad repository url: https://example.com/test/repo');
 
-    lab.assert.throws(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'false' });
+    expect(function() {
+      receiver.setEnv({RECEIVER_USE_SSH: 'false'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -233,10 +232,10 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repo owner', 'wrong owner');
+    }).to.throw(Error, 'bad repo owner');
 
-    lab.assert.throws(function() {
-      receiver.setEnv({ RECEIVER_USE_SSH: 'true' });
+    expect(function() {
+      receiver.setEnv({RECEIVER_USE_SSH: 'true'});
       var push = {
         after: 'asdf',
         ref: 'refs/heads/master',
@@ -248,7 +247,7 @@ lab.experiment('assertValid()', function() {
         }
       };
       receiver.assertValid(push);
-    }, 'bad repo owner', 'wrong owner');
+    }).to.throw('bad repo owner');
 
     done();
   });
@@ -261,7 +260,7 @@ lab.experiment('get()', function() {
     var env = receiver.getEnv();
     receiver.setEnv({foo: 'bar'});
 
-    lab.assert.equal(receiver.get('foo'), 'bar');
+    expect(receiver.get('foo')).to.equal('bar');
 
     receiver.setEnv(env);
     done();
@@ -271,16 +270,16 @@ lab.experiment('get()', function() {
     var env = receiver.getEnv();
     receiver.setEnv({foo: '42'});
 
-    lab.assert.strictEqual(receiver.get('foo', Number), 42);
+    expect(receiver.get('foo', Number)).to.equal(42);
 
     receiver.setEnv(env);
     done();
   });
 
   lab.test('throws if env is not set', function(done) {
-    lab.assert.throws(function() {
+    expect(function() {
       receiver.get('foo');
-    });
+    }).to.throw(Error);
     done();
   });
 
@@ -328,14 +327,14 @@ lab.experiment('make()', function() {
     };
 
     var emitter = receiver.make(push);
-    lab.assert.instanceOf(emitter, events.EventEmitter);
+    expect(emitter).to.be.an.instanceOf(events.EventEmitter);
 
     emitter.on('error', done);
 
     emitter.on('end', function() {
       var output = path.join(scratch, 'sites', name, 'ok');
       fs.exists(output, function(exists) {
-        lab.assert.strictEqual(exists, true, output + ' exists');
+        expect(exists).to.be.true();
         done();
       });
     });
@@ -355,7 +354,7 @@ lab.experiment('make()', function() {
     };
 
     var emitter = receiver.make(push);
-    lab.assert.isNull(emitter);
+    expect(emitter).to.be.null();
     done();
   });
 
@@ -372,24 +371,24 @@ lab.experiment('make()', function() {
     };
 
     var emitter = receiver.make(push);
-    lab.assert.instanceOf(emitter, events.EventEmitter);
+    expect(emitter).to.be.an.instanceOf(events.EventEmitter);
 
     emitter.on('error', done);
 
     emitter.on('end', function() {
       var output = path.join(scratch, 'sites', name, 'ok');
       fs.exists(output, function(exists) {
-        lab.assert.strictEqual(exists, true, output + ' exists');
+        expect(exists).to.be.true();
 
         var emitter = receiver.make(push);
-        lab.assert.instanceOf(emitter, events.EventEmitter);
+        expect(emitter).to.be.an.instanceOf(events.EventEmitter);
 
         emitter.on('error', done);
 
         emitter.on('end', function() {
           var output = path.join(scratch, 'sites', name, 'ok');
           fs.exists(output, function(exists) {
-            lab.assert.strictEqual(exists, true, output + ' exists');
+            expect(exists).to.be.true();
             done();
           });
         });
@@ -411,22 +410,22 @@ lab.experiment('make()', function() {
     };
 
     var emitter1 = receiver.make(push);
-    lab.assert.instanceOf(emitter1, events.EventEmitter);
+    expect(emitter1).to.be.an.instanceOf(events.EventEmitter);
     emitter1.on('error', done);
     emitter1.on('aborted', function() {
       done(new Error('Unexpected abort for job'));
     });
 
     var emitter2 = receiver.make(push);
-    lab.assert.instanceOf(emitter2, events.EventEmitter);
+    expect(emitter2).to.be.an.instanceOf(events.EventEmitter);
     emitter2.on('error', done);
 
     var emitter3 = receiver.make(push);
-    lab.assert.instanceOf(emitter3, events.EventEmitter);
+    expect(emitter3).to.be.an.instanceOf(events.EventEmitter);
     emitter3.on('error', done);
 
     var emitter4 = receiver.make(push);
-    lab.assert.instanceOf(emitter4, events.EventEmitter);
+    expect(emitter4).to.be.an.instanceOf(events.EventEmitter);
     emitter4.on('error', done);
     emitter4.on('aborted', function() {
       done(new Error('Unexpected abort for job'));
@@ -447,8 +446,8 @@ lab.experiment('make()', function() {
     });
     emitter4.on('end', function() {
       ++completed;
-      lab.assert.strictEqual(aborted, 2, 'two jobs aborted');
-      lab.assert.strictEqual(completed, 2, 'two jobs completed');
+      expect(aborted).to.equal(2);
+      expect(completed).to.equal(2);
       done();
     });
 
@@ -493,10 +492,10 @@ lab.experiment('handler()', function() {
     });
 
     var res = new MockRes(function() {
-      lab.assert.strictEqual(res.statusCode, 200);
+      expect(res.statusCode).to.equal(200);
       var obj = res._getJSON();
-      lab.assert.deepEqual(obj, {ok: true, msg: 'pong'});
-      lab.assert.lengthOf(make.calls, 0);
+      expect(obj).to.equal({ok: true, msg: 'pong'});
+      expect(make.calls).to.have.length(0);
       done();
     });
 
@@ -512,10 +511,10 @@ lab.experiment('handler()', function() {
     });
 
     var res = new MockRes(function() {
-      lab.assert.strictEqual(res.statusCode, 405);
+      expect(res.statusCode).to.equal(405);
       var obj = res._getJSON();
-      lab.assert.deepEqual(obj, {ok: false, msg: 'method not allowed'});
-      lab.assert.lengthOf(make.calls, 0);
+      expect(obj).to.equal({ok: false, msg: 'method not allowed'});
+      expect(make.calls).to.have.length(0);
       done();
     });
 
@@ -534,10 +533,10 @@ lab.experiment('handler()', function() {
     });
 
     var res = new MockRes(function() {
-      lab.assert.strictEqual(res.statusCode, 403);
+      expect(res.statusCode).to.equal(403);
       var obj = res._getJSON();
-      lab.assert.deepEqual(obj, {ok: false, msg: 'bad event type'});
-      lab.assert.lengthOf(make.calls, 0);
+      expect(obj).to.equal({ok: false, msg: 'bad event type'});
+      expect(make.calls).to.have.length(0);
       done();
     });
 
@@ -556,10 +555,10 @@ lab.experiment('handler()', function() {
     });
 
     var res = new MockRes(function() {
-      lab.assert.strictEqual(res.statusCode, 400);
+      expect(res.statusCode).to.equal(400);
       var obj = res._getJSON();
-      lab.assert.deepEqual(obj, {ok: false, msg: 'bad payload'});
-      lab.assert.lengthOf(make.calls, 0);
+      expect(obj).to.equal({ok: false, msg: 'bad payload'});
+      expect(make.calls).to.have.length(0);
       done();
     });
 
@@ -571,7 +570,6 @@ lab.experiment('handler()', function() {
   });
 
   lab.test('POST valid push', function(done) {
-    var name = 'smoke';
     var push = {
       after: 'invalid-sha',
       ref: 'refs/heads/master',
@@ -591,13 +589,13 @@ lab.experiment('handler()', function() {
     });
 
     var res = new MockRes(function() {
-      lab.assert.strictEqual(res.statusCode, 200);
+      expect(res.statusCode).to.equal(200);
       var obj = res._getJSON();
-      lab.assert.deepEqual(obj, {ok: true});
-      lab.assert.lengthOf(make.calls, 1);
+      expect(obj).to.equal({ok: true});
+      expect(make.calls).to.have.length(1);
       var args = make.calls[0];
-      lab.assert.lengthOf(args, 1);
-      lab.assert.deepEqual(args[0], push);
+      expect(args).to.have.length(1);
+      expect(args[0]).to.equal(push);
       done();
     });
 

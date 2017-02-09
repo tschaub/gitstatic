@@ -100,7 +100,7 @@ function parseSshUrl(urlString) {
       protocol: parsed.protocol,
       user: parsed.auth,
       hostname: parsed.hostname,
-      pathname: parsed.pathname,
+      pathname: parsed.pathname
     };
   } else {
     parsed = url.parse('ssh://' + urlString);
@@ -108,7 +108,7 @@ function parseSshUrl(urlString) {
       protocol: null,
       user: parsed.auth,
       hostname: parsed.hostname,
-      pathname: (parsed.pathname || '').replace(/^\/:/, '/'),
+      pathname: (parsed.pathname || '').replace(/^\/:/, '/')
     };
   }
 }
@@ -284,7 +284,6 @@ var runningJobs = {};
  * @type {Object.<string, Job>}
  */
 var pendingJobs = {};
-
 
 
 /**
